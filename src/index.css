@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* LIGHT MODE - Royal Garden (Green, White, Gold) */
+  /* Aesthetic: Solid, High 3D Depth, Clean, "Paper" */
+  --bg-primary: #F0FDF4;  /* Very subtle mint/white */
+  --bg-secondary: #DCFCE7; /* Light Green tint */
+  --bg-tertiary: #FFFFFF;
+  
+  --surface-primary: #FFFFFF;
+  --surface-elevated: #F8FAFC;
+  --surface-glass: rgba(255, 255, 255, 0.95); 
+  
+  --text-primary: #064E3B; /* Deep Emerald Black */
+  --text-secondary: #374151; /* Charcoal */
+  --text-tertiary: #64748B; /* Slate */
+  
+  --accent-main: #059669; /* Emerald Green */
+  --accent-secondary: #D97706; /* Royal Gold */
+  --accent-glow: rgba(5, 150, 105, 0.2);
+  
+  --gain-green: #059669;
+  --loss-red: #DC2626;
+  
+  --border-light: #E2E8F0;
+  
+  --gradient-hero: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+  --gradient-card: linear-gradient(145deg, #FFFFFF, #F1F5F9);
+  --gradient-main: linear-gradient(135deg, #059669 0%, #34D399 100%);
+  --gradient-royal: linear-gradient(135deg, #059669 0%, #D97706 100%);
+  
+  --grid-color: rgba(5, 150, 105, 0.08);
+  
+  /* 3D Shadows for Light Mode - Crisp & Defined */
+  --shadow-3d: 0 10px 20px -5px rgba(5, 150, 105, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0,0,0,0.02);
+  --shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.02);
+}
+
+.dark {
+  /* DARK MODE - Cosmic Royal (Purple, Orange) */
+  /* Aesthetic: Deep Void, Heavy Glass, Neon Glow */
+  --bg-primary: #0F0720; /* Deep Void Purple */
+  --bg-secondary: #1A0B2E;
+  --bg-tertiary: #2D1B4E;
+  
+  --surface-primary: rgba(30, 16, 60, 0.4);
+  --surface-elevated: rgba(45, 25, 90, 0.5);
+  --surface-glass: rgba(15, 7, 32, 0.7);
+  
+  --text-primary: #F3E8FF; /* Pale Lavender */
+  --text-secondary: #D8B4FE;
+  --text-tertiary: #9333EA;
+  
+  --accent-main: #9333EA; /* Electric Purple */
+  --accent-secondary: #F97316; /* Neon Orange */
+  --accent-glow: rgba(147, 51, 234, 0.6);
+  
+  --gain-green: #4ADE80; 
+  --loss-red: #FB7185;
+  
+  --border-light: rgba(147, 51, 234, 0.3);
+  
+  --gradient-hero: linear-gradient(135deg, #0F0720 0%, #1A0B2E 100%);
+  --gradient-card: linear-gradient(145deg, rgba(45,27,78,0.7), rgba(15,7,32,0.7));
+  --gradient-main: linear-gradient(135deg, #9333EA 0%, #C084FC 100%);
+  --gradient-royal: linear-gradient(135deg, #9333EA 0%, #F97316 100%);
+  
+  --grid-color: rgba(147, 51, 234, 0.15);
+  
+  /* Glowing Shadows for Dark Mode */
+  --shadow-3d: 0 0 25px rgba(147, 51, 234, 0.15), 0 0 10px rgba(249, 115, 22, 0.1);
+  --shadow-inner: inset 0 0 20px rgba(0,0,0,0.8);
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: 'Inter', sans-serif;
+  transition: background-color 0.7s ease, color 0.3s ease;
+  overflow-x: hidden; 
+}
+
+/* Theme Transition for Components */
+.card-royal {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--border-light);
+  border-radius: 1.25rem; /* 20px */
+  position: relative;
+  overflow: hidden;
+}
+
+/* Light Mode: Solid, 3D Lift */
+html:not(.dark) .card-royal {
+  background: var(--surface-primary);
+  box-shadow: var(--shadow-3d);
+  transform: translateY(0);
+}
+html:not(.dark) .card-royal:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 25px 30px -10px rgba(5, 150, 105, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border-color: var(--accent-main);
+}
+
+/* Dark Mode: Glassmorphism, Neon Glow */
+.dark .card-royal {
+  background: var(--surface-glass);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+.dark .card-royal:hover {
+  border-color: var(--accent-main);
+  box-shadow: 0 0 25px var(--accent-glow), inset 0 0 10px rgba(147, 51, 234, 0.2);
+  transform: translateY(-4px) scale(1.01);
+}
+
+/* Elegant Grid Background */
+.bg-grid-pattern {
+  background-size: 60px 60px;
+  background-image: 
+    linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+  mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
+  transform-origin: center;
+}
+
+/* Animation Keyframes */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+/* Particle Float Animation */
+@keyframes particle-float {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8;
+  }
+  90% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-120px) translateX(20px);
+    opacity: 0;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-main);
+  border-radius: 10px;
+  opacity: 0.5;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-secondary);
+}

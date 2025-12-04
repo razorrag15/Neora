@@ -12,6 +12,16 @@ dist
 dist-ssr
 *.local
 
+# Environment variables
+.env
+.env.local
+.env.production
+
+# API Exploration Results (keep reports, ignore raw JSON)
+api-exploration-results/*.json
+!api-exploration-results/SUMMARY.json
+!api-exploration-results/EXPLORATION_REPORT.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
