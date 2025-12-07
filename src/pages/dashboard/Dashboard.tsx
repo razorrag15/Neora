@@ -6,47 +6,68 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Newspaper,
-  Calendar,
-  TrendingUp,
-  Activity,
   Sparkles,
   ChevronRight,
   RefreshCw
 } from 'lucide-react'
 import StockCard from '@/components/stock/StockCard'
-import marketDataService from '@/services/marketDataService'
-import type { MarketMover } from '@/services/nseService'
+import neoraBackend from '@/services/neoraBackendService'
+
+interface DisplayStock {
+  symbol: string
+  name: string
+  price: number
+  change: number
+  change_percent: number
+}
 
 export default function Dashboard() {
   const { user } = useAuthStore()
   const navigate = useNavigate()
 
   // State for market data
-  const [topGainers, setTopGainers] = useState<MarketMover[]>([])
+  const [niftyStocks, setNiftyStocks] = useState<DisplayStock[]>([])
+  const [sensexStocks, setSensexStocks] = useState<DisplayStock[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
 
   useEffect(() => {
-    loadMarketMovers()
+    loadMarketData()
 
     // Auto-refresh every 30 seconds
-    const cleanup = marketDataService.startAutoRefresh(() => {
-      loadMarketMovers()
+    const interval = setInterval(() => {
+      loadMarketData()
       setLastUpdate(new Date())
     }, 30000)
 
-    return cleanup
+    return () => clearInterval(interval)
   }, [])
 
-  async function loadMarketMovers() {
+  async function loadMarketData() {
     try {
       setLoading(true)
-      const gainers = await marketDataService.getTopGainers(4)
-      if (gainers && gainers.length > 0) {
-        setTopGainers(gainers)
+      setError(null)
+      
+      const dashboard = await neoraBackend.getMarketDashboard()
+      
+      if (dashboard) {
+        // Convert backend stock data to display format
+        const convertStocks = (stocks: any[]) => stocks.map(s => ({
+          symbol: s.symbol,
+          name: s.name,
+          price: s.last_price,
+          change: s.change,
+          change_percent: s.change_percent
+        }))
+        
+        // Get top 4 stocks from each index for display
+        setNiftyStocks(convertStocks(dashboard.nifty_50.stocks.slice(0, 4)))
+        setSensexStocks(convertStocks(dashboard.sensex.stocks.slice(0, 4)))
       }
-    } catch (error) {
-      console.error('Error loading market movers:', error)
+    } catch (err: any) {
+      console.error('Error loading market data:', err)
+      setError(err.response?.data?.detail || err.message || 'Failed to load market data')
     } finally {
       setLoading(false)
     }
@@ -57,17 +78,24 @@ export default function Dashboard() {
     console.log('Stock clicked:', symbol)
   }
 
-  // Convert market movers to stock card format
-  const displayStocks = topGainers.map(mover => ({
-    symbol: mover.symbol,
-    name: mover.companyName,
-    price: mover.ltp,
-    change: mover.change,
-    changePercent: mover.pChange,
-    volume: mover.volume,
+  // Convert backend stock data to StockCard format
+  const convertToStockCardFormat = (stock: DisplayStock) => ({
+    symbol: stock.symbol,
+    name: stock.name,
+    price: stock.price,
+    change: stock.change,
+    changePercent: stock.change_percent,
+    volume: 0,
     marketCap: 0,
     pe: 0,
-  }))
+    data: [] // No chart data for now
+  })
+
+  // Combine top movers from both indices
+  const displayStocks = [
+    ...niftyStocks.slice(0, 2).map(convertToStockCardFormat),
+    ...sensexStocks.slice(0, 2).map(convertToStockCardFormat)
+  ]
 
   return (
     <div className="space-y-8 animate-fade-in relative z-10 pb-24 p-4 md:p-10">
@@ -80,15 +108,22 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center gap-2 mb-3">
               <span className="px-3 py-1 rounded-full bg-accent-main/10 text-accent-main text-xs font-bold uppercase tracking-widest border border-accent-main/20">
-                Market Status: Live
+                {error ? 'Market Status: Error' : loading ? 'Loading...' : 'Market Status: Live'}
               </span>
-              <span className="text-xs text-text-tertiary font-medium">Updated 1m ago</span>
+              <span className="text-xs text-text-tertiary font-medium">
+                Updated {lastUpdate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+              </span>
             </div>
             <h1 className="font-display text-4xl md:text-6xl font-bold text-text-primary mb-4 tracking-tight leading-tight">
               Royal Market <br /><span className="bg-clip-text text-transparent bg-gradient-royal">Intelligence Suite</span>
             </h1>
             <p className="text-text-secondary text-lg font-light max-w-xl leading-relaxed">
-              Welcome back, <span className="font-bold text-text-primary">{user?.full_name}</span>. Your portfolio has outperformed the <span className="font-bold text-text-primary">NIFTY 50</span> by <span className="text-market-gain font-bold">+1.2%</span> today.
+              Welcome back, <span className="font-bold text-text-primary">{user?.full_name}</span>.
+              {error ? (
+                <span className="text-market-loss font-bold"> {error}</span>
+              ) : (
+                <> Real-time market data from <span className="font-bold text-text-primary">NIFTY 50</span> and <span className="font-bold text-text-primary">SENSEX</span>.</>
+              )}
             </p>
           </div>
 
@@ -130,9 +165,9 @@ export default function Dashboard() {
               {loading && <RefreshCw size={20} className="animate-spin text-accent-main" />}
             </h2>
             <p className="text-text-tertiary mt-1">
-              Top gainers with highest percentage change
+              Top stocks from NIFTY 50 and SENSEX
             </p>
-            {!loading && (
+            {!loading && !error && (
               <p className="text-xs text-text-tertiary mt-1">
                 Last updated: {lastUpdate.toLocaleTimeString('en-IN')}
               </p>
@@ -141,16 +176,25 @@ export default function Dashboard() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => navigate('/stocks')}
-              className="px-5 py-2 rounded-full bg-surface-elevated hover:bg-accent-main hover:text-white text-text-primary text-sm font-bold transition-all shadow-sm border border-border-light flex items-center gap-2 group"
+              onClick={loadMarketData}
+              className="px-4 py-2 rounded-full bg-surface-elevated hover:bg-accent-main hover:text-white text-text-primary text-sm font-bold transition-all shadow-sm border border-border-light flex items-center gap-2"
             >
-              View All Assets <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              <RefreshCw size={14} /> Refresh
             </button>
           </div>
         </div>
 
         {/* Stock Cards Grid */}
-        {loading ? (
+        {error ? (
+          <div className="card-royal p-8 text-center">
+            <p className="text-market-loss font-bold mb-2">⚠️ Backend Connection Error</p>
+            <p className="text-text-secondary text-sm mb-4">{error}</p>
+            <p className="text-text-tertiary text-xs">
+              Please ensure the backend is running and authenticated. 
+              Check the admin panel to complete TOTP authentication.
+            </p>
+          </div>
+        ) : loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="card-royal p-6 animate-pulse">
@@ -160,11 +204,15 @@ export default function Dashboard() {
               </div>
             ))}
           </div>
-        ) : (
+        ) : displayStocks.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {displayStocks.map(stock => (
               <StockCard key={stock.symbol} stock={stock} onClick={handleStockClick} />
             ))}
+          </div>
+        ) : (
+          <div className="card-royal p-8 text-center text-text-secondary">
+            No stock data available
           </div>
         )}
       </section>
@@ -183,23 +231,30 @@ export default function Dashboard() {
           <div className="grid gap-6">
             {/* News section would be populated with real data from API */}
             <div className="text-center py-8 text-text-secondary">
-              News feed would display real market news here
+              News feed integration coming soon
             </div>
           </div>
         </div>
 
         {/* Sidebar Widgets - Takes 4 cols */}
         <div className="lg:col-span-4 space-y-8">
-          {/* IPO Widget */}
+          {/* Market Stats Widget */}
           <div>
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-display font-bold text-text-primary">IPO Radar</h2>
+              <h2 className="text-2xl font-display font-bold text-text-primary">Market Stats</h2>
             </div>
-            <div className="card-royal p-8 relative overflow-hidden group border-accent-secondary/30">
-              <div className="relative z-10">
-                <div className="text-center py-8 text-text-secondary">
-                  IPO data would be displayed here from real API
-                </div>
+            <div className="card-royal p-6 space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-text-secondary text-sm">NIFTY 50 Stocks</span>
+                <span className="font-mono font-bold text-text-primary">{niftyStocks.length > 0 ? '50' : '-'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-text-secondary text-sm">SENSEX Stocks</span>
+                <span className="font-mono font-bold text-text-primary">{sensexStocks.length > 0 ? '30' : '-'}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-text-secondary text-sm">Data Source</span>
+                <span className="font-bold text-market-gain text-sm">Kite Connect</span>
               </div>
             </div>
           </div>

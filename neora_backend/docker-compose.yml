@@ -1,0 +1,50 @@
+services:
+  # TimescaleDB - PostgreSQL with time-series extension
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: mpass_timescaledb
+    environment:
+      - POSTGRES_DB=${DATABASE_NAME:-historical_database}
+      - POSTGRES_USER=${DATABASE_USER:-postgres}
+      - POSTGRES_PASSWORD=${DATABASE_PASSWORD:-postgres}
+    volumes:
+      - ./data/postgresql:/var/lib/postgresql/data
+      - ./scripts/historical_database.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./scripts:/scripts
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Application - Connects to TimescaleDB container
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${IMAGE_NAME:-mpass_historical_database_service}:${SERVICE_VERSION:-2.0.0}
+    container_name: ${CONTAINER_NAME:-mpass_historical_database_service}
+    volumes:
+      - ./data:/workspace/data
+      - ./logs:/workspace/logs
+    env_file:
+      - docker_config.env
+    ports:
+      - "${HOST_PORT:-4000}:${CONTAINER_PORT:-4000}"
+    environment:
+      - DATABASE_HOST=${DATABASE_HOST:-timescaledb}  # Use env var or default to TimescaleDB container
+    # Comment out depends_on when using external database (staging/production)
+    # Uncomment when using local timescaledb container
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

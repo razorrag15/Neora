@@ -1,30 +1,31 @@
 import { useEffect, useState } from 'react'
 import { ArrowUpRight, ArrowDownRight, RefreshCw } from 'lucide-react'
-import marketDataService from '@/services/marketDataService'
-import type { IndexQuote } from '@/services/nseService'
+import neoraBackend, { type IndexData } from '@/services/neoraBackendService'
 
 export default function IndicesBar() {
-  const [indices, setIndices] = useState<IndexQuote[]>([])
+  const [nifty, setNifty] = useState<IndexData | null>(null)
+  const [sensex, setSensex] = useState<IndexData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
 
   useEffect(() => {
     loadIndices()
 
-    // Auto-refresh every 10 seconds
-    const cleanup = marketDataService.startAutoRefresh(loadIndices, 10000)
-    return cleanup
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(loadIndices, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   async function loadIndices() {
     try {
-      const data = await marketDataService.getIndices()
-      if (data && data.length > 0) {
-        setIndices(data)
+      setLoading(true)
+      
+      const dashboard = await neoraBackend.getMarketDashboard()
+      
+      if (dashboard) {
+        setNifty(dashboard.nifty_50)
+        setSensex(dashboard.sensex)
         setError(false)
-      } else {
-        // Fallback to mock data if no real data
-        setError(true)
       }
     } catch (err) {
       console.error('Error loading indices:', err)
@@ -34,27 +35,53 @@ export default function IndicesBar() {
     }
   }
 
-  // Use real data only
-  const displayIndices = indices.length > 0 ? indices : []
+  // Create indices array for display
+  const indices = []
+  if (nifty) {
+    indices.push({
+      name: nifty.symbol,
+      value: nifty.last_value,
+      change: nifty.change,
+      changePercent: nifty.change_percent,
+      color: nifty.change >= 0 ? 'green' : 'red'
+    })
+  }
+  if (sensex) {
+    indices.push({
+      name: sensex.symbol,
+      value: sensex.last_value,
+      change: sensex.change,
+      changePercent: sensex.change_percent,
+      color: sensex.change >= 0 ? 'green' : 'red'
+    })
+  }
 
   return (
     <div className="w-full bg-surface-primary/80 dark:bg-surface-glass backdrop-blur-lg border-b border-border-light overflow-hidden whitespace-nowrap py-3 hidden md:flex z-20 shadow-sm relative">
       <div className="flex items-center animate-marquee space-x-16 px-4">
-        {/* Duplicate for seamless scrolling */}
-        {[...displayIndices, ...displayIndices, ...displayIndices].map((index, i) => (
-          <div key={`${index.index}-${i}`} className="flex items-center space-x-3 text-sm group cursor-pointer">
+        {/* Show message if error */}
+        {error && !loading && (
+          <div className="text-sm text-text-secondary px-4">
+            <span className="font-bold text-text-tertiary">⚠️ Data unavailable</span>
+          </div>
+        )}
+
+        {/* Show indices if available */}
+        {indices.length > 0 && [...indices, ...indices, ...indices].map((index, i) => (
+          <div key={`${index.name}-${i}`} className="flex items-center space-x-3 text-sm group cursor-pointer">
             <span className="font-bold text-text-secondary group-hover:text-accent-main transition-colors font-display tracking-wider">
-              {index.index}
+              {index.name}
             </span>
             <span className="font-mono text-text-primary font-semibold">
-              {index.ltp.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {index.value.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
-            <span className={`flex items-center font-bold text-xs px-2 py-0.5 rounded-full ${index.pChange >= 0
-                ? 'text-market-gain bg-market-gain/10'
-                : 'text-market-loss bg-market-loss/10'
+            <span className={`flex items-center font-bold text-xs px-2 py-0.5 rounded-full ${
+                index.color === 'green'
+                  ? 'text-market-gain bg-market-gain/10'
+                  : 'text-market-loss bg-market-loss/10'
               }`}>
-              {index.pChange >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-              {Math.abs(index.pChange).toFixed(2)}%
+              {index.change >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+              {Math.abs(index.changePercent).toFixed(2)}%
             </span>
           </div>
         ))}
@@ -64,8 +91,9 @@ export default function IndicesBar() {
       <div className="absolute right-28 top-1/2 -translate-y-1/2 z-20">
         <div className="flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-surface-elevated">
           <RefreshCw size={10} className={loading ? 'animate-spin' : ''} />
-          <span className={`w-2 h-2 rounded-full ${!error ? 'bg-market-gain animate-pulse' : 'bg-text-tertiary'
-            }`} />
+          <span className={`w-2 h-2 rounded-full ${
+            !error && indices.length > 0 ? 'bg-market-gain animate-pulse' : 'bg-text-tertiary'
+          }`} />
           <span className="text-text-tertiary">
             {loading ? 'LOADING' : error ? 'ERROR' : 'LIVE'}
           </span>

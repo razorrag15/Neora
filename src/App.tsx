@@ -19,6 +19,10 @@ import Register from '@/pages/auth/Register'
 
 // Protected Pages
 import Dashboard from '@/pages/dashboard/Dashboard'
+import Watchlist from '@/pages/watchlist/Watchlist'
+
+// Admin Pages
+import AdminPanel from '@/pages/admin/AdminPanel'
 
 // Placeholder components for routes we haven't built yet
 const MarketOverview = () => (
@@ -32,13 +36,6 @@ const Portfolio = () => (
   <div className="p-6">
     <h1 className="text-3xl font-display font-bold mb-4">Portfolio</h1>
     <p className="text-text-secondary">Portfolio management coming soon...</p>
-  </div>
-)
-
-const Watchlist = () => (
-  <div className="p-6">
-    <h1 className="text-3xl font-display font-bold mb-4">Watchlist</h1>
-    <p className="text-text-secondary">Watchlist feature coming soon...</p>
   </div>
 )
 
@@ -104,26 +101,6 @@ const Pricing = () => (
   </div>
 )
 
-const AdminDashboard = () => (
-  <div className="p-6">
-    <h1 className="text-3xl font-display font-bold mb-4">Admin Dashboard</h1>
-    <p className="text-text-secondary mb-6">Welcome to the admin panel</p>
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="card-royal p-6">
-        <h3 className="font-semibold mb-2">Total Users</h3>
-        <p className="text-3xl font-bold">1,234</p>
-      </div>
-      <div className="card-royal p-6">
-        <h3 className="font-semibold mb-2">Active Sessions</h3>
-        <p className="text-3xl font-bold">456</p>
-      </div>
-      <div className="card-royal p-6">
-        <h3 className="font-semibold mb-2">API Calls Today</h3>
-        <p className="text-3xl font-bold">78,901</p>
-      </div>
-    </div>
-  </div>
-)
 
 function App() {
   const { checkAuth } = useAuthStore()
@@ -154,9 +131,9 @@ function App() {
           <Route path="/profile" element={<Profile />} />
         </Route>
 
-        {/* Admin Routes (Hidden) */}
+        {/* Admin Routes */}
         <Route element={<AdminRoute><DashboardLayout /></AdminRoute>}>
-          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin" element={<AdminPanel />} />
         </Route>
 
         {/* 404 Redirect */}

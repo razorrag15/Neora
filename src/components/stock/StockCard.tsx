@@ -1,5 +1,5 @@
 import React from 'react';
-import { Stock } from '../types';
+import { Stock } from '@/types';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
